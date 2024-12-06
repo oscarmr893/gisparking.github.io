@@ -1,0 +1,481 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+		<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
+        <link rel="stylesheet" href="css/leaflet.css">
+      
+        <link rel="stylesheet" href="css/L.Control.Locate.min.css">
+        <link rel="stylesheet" href="css/qgis2web.css">
+        <link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet-search.css">
+        <link rel="stylesheet" href="css/leaflet-control-geocoder.Geocoder.css">
+        <link rel="stylesheet" href="css/leaflet-measure.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title>SSJ GIS Parking</title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+       
+        <script src="js/L.Control.Locate.min.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet-control-geocoder.Geocoder.js"></script>
+        <script src="js/leaflet-measure.js"></script>
+        <script src="js/leaflet-search.js"></script>
+        <script src="data/MotosBoxes_3.js"></script>
+        <script src="data/AutoBoxes_4.js"></script>
+        <script>
+        var highlightLayer;
+        function highlightFeature(e) {
+            highlightLayer = e.target;
+
+            if (e.target.feature.geometry.type === 'LineString' || e.target.feature.geometry.type === 'MultiLineString') {
+              highlightLayer.setStyle({
+                color: '#ffff00',
+              });
+            } else {
+              highlightLayer.setStyle({
+                fillColor: '#ffff00',
+                fillOpacity: 1
+              });
+            }
+            highlightLayer.openPopup();
+        }
+        var map = L.map('map', {
+            zoomControl:false, maxZoom:28, minZoom:1
+        }).fitBounds([[-24.19603247144009,-65.31149374905765],[-24.17794130050395,-65.28800860996482]]);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">GIS</a> &middot; ');
+        var autolinker = new Autolinker({truncate: {length: 30, location: 'smart'}});
+        // remove popup's row if "visible-with-data"
+        function removeEmptyRowsFromPopupContent(content, feature) {
+         var tempDiv = document.createElement('div');
+         tempDiv.innerHTML = content;
+         var rows = tempDiv.querySelectorAll('tr');
+         for (var i = 0; i < rows.length; i++) {
+             var td = rows[i].querySelector('td.visible-with-data');
+             var key = td ? td.id : '';
+             if (td && td.classList.contains('visible-with-data') && feature.properties[key] == null) {
+                 rows[i].parentNode.removeChild(rows[i]);
+             }
+         }
+         return tempDiv.innerHTML;
+        }
+        // add class to format popup if it contains media
+		function addClassToPopupIfMedia(content, popup) {
+			var tempDiv = document.createElement('div');
+			tempDiv.innerHTML = content;
+			if (tempDiv.querySelector('td img')) {
+				popup._contentNode.classList.add('media');
+					// Delay to force the redraw
+					setTimeout(function() {
+						popup.update();
+					}, 10);
+			} else {
+				popup._contentNode.classList.remove('media');
+			}
+		}
+        var zoomControl = L.control.zoom({
+            position: 'topleft'
+        }).addTo(map);
+        L.control.locate({locateOptions: {maxZoom: 19}}).addTo(map);
+        var measureControl = new L.Control.Measure({
+            position: 'topleft',
+            primaryLengthUnit: 'meters',
+            secondaryLengthUnit: 'kilometers',
+            primaryAreaUnit: 'sqmeters',
+            secondaryAreaUnit: 'hectares'
+        });
+        measureControl.addTo(map);
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].innerHTML = '';
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0].className += ' fas fa-ruler';
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+        }
+        map.createPane('pane_OpenStreetMap_0');
+        map.getPane('pane_OpenStreetMap_0').style.zIndex = 400;
+        var layer_OpenStreetMap_0 = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            pane: 'pane_OpenStreetMap_0',
+            opacity: 1.0,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 19
+        });
+        layer_OpenStreetMap_0;
+        map.addLayer(layer_OpenStreetMap_0);
+        map.createPane('pane_GoogleSatellite_1');
+        map.getPane('pane_GoogleSatellite_1').style.zIndex = 401;
+        var layer_GoogleSatellite_1 = L.tileLayer('https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}', {
+            pane: 'pane_GoogleSatellite_1',
+            opacity: 1.0,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 22
+        });
+        layer_GoogleSatellite_1;
+       // map.addLayer(layer_GoogleSatellite_1);
+        map.createPane('pane_GoogleMaps_2');
+        map.getPane('pane_GoogleMaps_2').style.zIndex = 402;
+        var layer_GoogleMaps_2 = L.tileLayer('https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}', {
+            pane: 'pane_GoogleMaps_2',
+            opacity: 1.0,
+            attribution: '',
+            minZoom: 1,
+            maxZoom: 28,
+            minNativeZoom: 0,
+            maxNativeZoom: 19
+        });
+        layer_GoogleMaps_2;
+       // map.addLayer(layer_GoogleMaps_2);
+        function pop_MotosBoxes_3(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+			/*<tr>\
+                        <td colspan="2">' + (feature.properties['tipo'] !== null ? autolinker.link(feature.properties['tipo'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+					
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['nrobox'] !== null ? autolinker.link(feature.properties['nrobox'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+					*/
+					
+			
+					
+            var popupContent = '<table>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['estado'] !== null ? autolinker.link(feature.properties['estado'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <td colspan="2">' + (feature.properties['box'] !== null ? autolinker.link(feature.properties['box'].toLocaleString()) : '') + '</td>\
+                    </tr>\
+                </table>';
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+        function style_MotosBoxes_3_0(feature) {
+            var context = {
+                feature: feature,
+                variables: {}
+            };
+            // Start of if blocks and style check logic
+            if (exp_MotosBoxes_3rule0_eval_expression(context)) {
+                  return {
+                pane: 'pane_MotosBoxes_3',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(56,122,236,1.0)',
+                interactive: true,
+            };
+                }
+                else if (exp_MotosBoxes_3rule1_eval_expression(context)) {
+                  return {
+                pane: 'pane_MotosBoxes_3',
+                radius: 4.0,
+                opacity: 1,
+                color: 'rgba(35,35,35,1.0)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(246,21,190,1.0)',
+                interactive: true,
+            };
+                }
+            else {
+                return {fill: false, stroke: false};
+            }
+        }
+        map.createPane('pane_MotosBoxes_3');
+        map.getPane('pane_MotosBoxes_3').style.zIndex = 403;
+        map.getPane('pane_MotosBoxes_3').style['mix-blend-mode'] = 'normal';
+        var layer_MotosBoxes_3 = new L.geoJson(json_MotosBoxes_3, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_MotosBoxes_3',
+            layerName: 'layer_MotosBoxes_3',
+            pane: 'pane_MotosBoxes_3',
+            onEachFeature: pop_MotosBoxes_3,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_MotosBoxes_3_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_MotosBoxes_3);
+        map.addLayer(layer_MotosBoxes_3);
+        function pop_AutoBoxes_4(feature, layer) {
+            layer.on({
+                mouseout: function(e) {
+                    for (var i in e.target._eventParents) {
+                        if (typeof e.target._eventParents[i].resetStyle === 'function') {
+                            e.target._eventParents[i].resetStyle(e.target);
+                        }
+                    }
+                    if (typeof layer.closePopup == 'function') {
+                        layer.closePopup();
+                    } else {
+                        layer.eachLayer(function(feature){
+                            feature.closePopup()
+                        });
+                    }
+                },
+                mouseover: highlightFeature,
+            });
+			
+			/* 
+                    */
+					
+				switch(feature.properties['estado'])
+				{
+					case 'L':					
+							
+							var popupContent = '<table>\
+							<tr>\
+								<td>Box: ' + (feature.properties['box'] !== null ? autolinker.link(feature.properties['box'].toLocaleString()) : '') + '</td>\
+							</tr>\
+							<tr>\
+								<td>Estado: Libre</td>\
+							</tr>\
+							<tr>\
+								<td>Libre desde : 11:55 am </td>\
+							</tr>\
+							<tr>\
+								<td>Tiempo libre: 25 min</td>\
+							</tr>\
+						   </table>';
+						   
+						break;
+					case 'O':
+						var popupContent = '<table>\
+							<tr>\
+								<td>Box: ' + (feature.properties['box'] !== null ? autolinker.link(feature.properties['box'].toLocaleString()) : '') + '</td>\
+							</tr>\
+							<tr>\
+								<td>Estado: Ocupado</td>\
+							</tr>\
+							<tr>\
+								<td>Hr Inicio: ' + (feature.properties['estado'] !== null ? '11:55 am' : '-') + '</td>\
+							</tr>\
+							<tr>\
+								<td>Tiempo Trascurido: 25 min</td>\
+							</tr>\
+						   </table>';
+						break;
+					case 'G':
+						var popupContent = 'Garage';
+						break;
+				}			
+				
+            
+            var content = removeEmptyRowsFromPopupContent(popupContent, feature);
+			layer.on('popupopen', function(e) {
+				addClassToPopupIfMedia(content, e.popup);
+			});
+			layer.bindPopup(content, { maxHeight: 400 });
+        }
+        function style_AutoBoxes_4_0(feature) {
+            var context = {
+                feature: feature,
+                variables: {}
+            };
+            // Start of if blocks and style check logic
+            if (exp_AutoBoxes_4rule0_eval_expression(context)) {
+                  return {
+                pane: 'pane_AutoBoxes_4',
+                radius: 6.0,
+                opacity: 1,
+                color: '#fff',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: '#000000',
+                interactive: true,
+            };
+                }
+                else if (exp_AutoBoxes_4rule1_eval_expression(context)) {
+                  return {
+                pane: 'pane_AutoBoxes_4',
+                radius: 6.0,
+                opacity: 1,
+                color: '#fff',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: '#21c11c',
+                interactive: true,
+            };
+                }
+                else if (exp_AutoBoxes_4rule2_eval_expression(context)) {
+                  return {
+                pane: 'pane_AutoBoxes_4',
+                radius: 6.0,
+                opacity: 1,
+                color: '#fff',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1,
+                fill: true,
+                fillOpacity: 1,
+                fillColor: '#de2d26',
+                interactive: true,
+            };
+                }
+            else {
+                return {fill: false, stroke: false};
+            }
+        }
+        map.createPane('pane_AutoBoxes_4');
+        map.getPane('pane_AutoBoxes_4').style.zIndex = 404;
+        map.getPane('pane_AutoBoxes_4').style['mix-blend-mode'] = 'normal';
+        var layer_AutoBoxes_4 = new L.geoJson(json_AutoBoxes_4, {
+            attribution: '',
+            interactive: true,
+            dataVar: 'json_AutoBoxes_4',
+            layerName: 'layer_AutoBoxes_4',
+            pane: 'pane_AutoBoxes_4',
+            onEachFeature: pop_AutoBoxes_4,
+            pointToLayer: function (feature, latlng) {
+                var context = {
+                    feature: feature,
+                    variables: {}
+                };
+                return L.circleMarker(latlng, style_AutoBoxes_4_0(feature));
+            },
+        });
+        bounds_group.addLayer(layer_AutoBoxes_4);
+        map.addLayer(layer_AutoBoxes_4);
+        var osmGeocoder = new L.Control.Geocoder({
+            collapsed: true,
+            position: 'topleft',
+            text: 'Search',
+            title: 'Testing'
+        }).addTo(map);
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .className += ' fa fa-search';
+        document.getElementsByClassName('leaflet-control-geocoder-icon')[0]
+        .title += 'Search for a place';
+        setBounds();
+        map.addControl(new L.Control.Search({
+            layer: layer_AutoBoxes_4,
+            initial: false,
+            hideMarkerOnCollapse: true,
+            propertyName: 'nrobox'}));
+        document.getElementsByClassName('search-button')[0].className +=
+         ' fa fa-binoculars';
+		 
+		 
+		 function getColor(d) {
+  return d === 'Ocupado'  ? "#de2d26" :
+         d === 'Libre'  ? "#21c11c" :
+         d === 'Garage' ? "#000000" :
+                      "#ff7f00";
+}
+
+/* "L": "#00b413",
+    "O": "#ff0f0f",
+    "G": "#000"
+ */
+function style2(feature) {
+  return {
+      weight: 1.5,
+      opacity: 1,
+      fillOpacity: 1,
+      radius: 6,
+      fillColor: getColor(feature.properties.TypeOfIssue),
+      color: "grey"
+
+  };
+}
+
+var legend = L.control({position: 'bottomleft'});
+    legend.onAdd = function (map) {
+
+    var div = L.DomUtil.create('div', 'info legend');
+    labels = ['<strong>Referencias</strong>'],
+    categories = ['Ocupado','Libre','Garage'];
+    for (var i = 0; i < categories.length; i++) {
+           div.innerHTML += labels.push(' <i class="fas fa-circle" style="color:' + getColor(categories[i]) + '"></i> ' + (categories[i] ? categories[i] : '+'));
+        }
+
+        div.innerHTML = labels.join('<br>');
+    return div;
+};
+
+legend.addTo(map);
+
+
+const baseLayers = {
+	'OpenStreetMap': layer_OpenStreetMap_0,
+	'Google Calles': layer_GoogleMaps_2,
+	'Google Satelital': layer_GoogleSatellite_1
+};
+
+const overlays = {
+	'Autos': layer_AutoBoxes_4,
+	'Motos': layer_MotosBoxes_3
+};
+
+const layerControl = L.control.layers(baseLayers, overlays).addTo(map);
+        </script>
+    </body>
+</html>
